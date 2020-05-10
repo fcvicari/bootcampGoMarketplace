@@ -42,17 +42,25 @@ const CartProvider: React.FC = ({ children }) => {
     loadProducts();
   }, []);
 
-  const increment = useCallback(
-    async id => {
+  const addToCart = useCallback(
+    async product => {
       const productId = products.findIndex(
-        findProduct => findProduct.id === id,
+        findProduct => findProduct.id === product.id,
       );
 
-      if (productId > 0) {
-        products[productId].quantity += 1;
+      if (productId < 0) {
+        product.quantity += 1;
+        setProducts([...products, product]);
+      } else {
+        const productsUpdated = products.map(oldProduct => {
+          if (product.id === oldProduct.id) {
+            oldProduct.quantity += 1;
+          }
+          return oldProduct;
+        });
+        setProducts(productsUpdated);
       }
 
-      setProducts(products);
       await AsyncStorage.setItem(
         '@GoMarketPlaceCardItens',
         JSON.stringify(products),
@@ -61,24 +69,25 @@ const CartProvider: React.FC = ({ children }) => {
     [products],
   );
 
-  const addToCart = useCallback(
-    async product => {
+  const increment = useCallback(
+    async id => {
       const productId = products.findIndex(
-        findProduct => findProduct.id === product.id,
+        findProduct => findProduct.id === id,
       );
 
-      if (productId < 0) {
-        setProducts([...products, product]);
-      } else {
-        increment(product.id);
+      if (productId >= 0) {
+        products[productId].quantity += 1;
       }
 
+      const newProducts = products.filter(product => product.quantity > 0);
+
+      setProducts(newProducts);
       await AsyncStorage.setItem(
         '@GoMarketPlaceCardItens',
         JSON.stringify(products),
       );
     },
-    [products, increment],
+    [products],
   );
 
   const decrement = useCallback(
@@ -87,15 +96,11 @@ const CartProvider: React.FC = ({ children }) => {
         findProduct => findProduct.id === id,
       );
 
-      if (productId > 0) {
+      if (productId >= 0) {
         products[productId].quantity -= 1;
       }
 
-      const newProducts = products.map(product => {
-        if (product.quantity > 0) {
-          return product;
-        }
-      });
+      const newProducts = products.filter(product => product.quantity > 0);
 
       if (newProducts) {
         setProducts(newProducts);
